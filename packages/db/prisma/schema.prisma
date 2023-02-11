@@ -1,0 +1,36 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+}
+
+model Debt {
+    id             String @id @default(cuid())
+    cardId         String 
+    month          String
+    year           String
+    amount         Int
+    card           Card    @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+model Statement {
+    id             String @id @default(cuid())
+    description    String
+    amount         Int
+    purchaseDate   DateTime
+    cardId         String
+    paymentDate    DateTime
+    card           Card    @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+model Card {
+    id             String @id @default(cuid())
+    name           String
+    lastFourDigits String?
+    dueDay         String?
+    statements     Statement[]
+    debt           Debt[]
+}
