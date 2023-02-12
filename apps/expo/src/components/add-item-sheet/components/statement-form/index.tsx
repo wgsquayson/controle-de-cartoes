@@ -1,11 +1,15 @@
-import React, { useState } from "react";
-import { Text, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { Platform, Text, View } from "react-native";
 import { Item } from "react-native-picker-select";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 
 import { api } from "../../../../utils/api";
+import formatDate from "../../../../utils/format-date";
 import Button from "../../../button";
 import Input from "../../../input";
 import Picker from "../../../picker";
@@ -74,6 +78,49 @@ const StatementForm: React.FC<StatementFormProps> = ({
     });
   };
 
+  const renderDatePickerComponent = useCallback(
+    ({
+      label,
+      onPress,
+      value,
+      onChange,
+    }: {
+      label: string;
+      onPress?: () => void;
+      value?: Date;
+      onChange?: (_: DateTimePickerEvent, date: Date | undefined) => void;
+    }) => {
+      if (Platform.OS === "android") {
+        return (
+          <Input
+            label={label}
+            value={formatDate(value ?? new Date())}
+            readonly
+            onPress={onPress}
+          />
+        );
+      } else {
+        return (
+          <>
+            <Text className="text-base text-slate-800 font-medium">
+              {label}
+            </Text>
+            <View className="h-1" />
+            <View className="flex border-2 border-slate-800 p-2 rounded-lg">
+              <DateTimePicker
+                style={{ alignSelf: "flex-start" }}
+                value={value ?? new Date()}
+                mode="date"
+                onChange={onChange}
+              />
+            </View>
+          </>
+        );
+      }
+    },
+    [],
+  );
+
   return (
     <>
       <Animated.View
@@ -98,18 +145,16 @@ const StatementForm: React.FC<StatementFormProps> = ({
           )}
         />
         <View className="h-4" />
-        <Text className="text-base text-slate-800 font-medium">
-          Data de compra
-        </Text>
-        <View className="h-1" />
-        <View className="flex border-2 border-slate-800 p-2 rounded-lg">
-          <DateTimePicker
-            style={{ alignSelf: "flex-start" }}
-            value={purchaseDate}
-            mode="date"
-            onChange={(_, date) => setPurchaseDate(date as Date)}
-          />
-        </View>
+        {renderDatePickerComponent({
+          label: "Data de compra",
+          value: purchaseDate,
+          onChange: (_, date) => setPurchaseDate(date as Date),
+          onPress: () =>
+            DateTimePickerAndroid.open({
+              value: purchaseDate,
+              onChange: (_, date) => setPurchaseDate(date as Date),
+            }),
+        })}
         <View className="h-4" />
         <Picker
           label="Cartão"
@@ -119,16 +164,16 @@ const StatementForm: React.FC<StatementFormProps> = ({
           }}
         />
         <View className="h-4" />
-        <Text className="text-base text-slate-800 font-medium">Pagar em</Text>
-        <View className="h-1" />
-        <View className="flex border-2 border-slate-800 p-2 rounded-lg">
-          <DateTimePicker
-            style={{ alignSelf: "flex-start" }}
-            value={paymentDate}
-            mode="date"
-            onChange={(_, date) => setPaymentDate(date as Date)}
-          />
-        </View>
+        {renderDatePickerComponent({
+          label: "Pagar em",
+          value: paymentDate,
+          onChange: (_, date) => setPaymentDate(date as Date),
+          onPress: () =>
+            DateTimePickerAndroid.open({
+              value: paymentDate,
+              onChange: (_, date) => setPaymentDate(date as Date),
+            }),
+        })}
         <View className="h-6" />
         <Button
           onPress={handleSubmit(onSubmit)}

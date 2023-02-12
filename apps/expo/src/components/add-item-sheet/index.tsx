@@ -93,7 +93,7 @@ const AddItemSheet: React.ForwardRefRenderFunction<
           </Animated.View>
         );
     }
-  }, [selectedOption]);
+  }, [cards, selectedOption]);
 
   return (
     <BottomSheet

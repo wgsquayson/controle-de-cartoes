@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import {
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   Text,
   TextInput,
@@ -61,11 +62,15 @@ const Input: React.FC<InputProps> = ({
     );
   }
 
+  const paddingSize = Platform.OS === "android" ? "2" : "4";
+
   return (
     <View>
       <Text className="text-base text-slate-800 font-medium">{label}</Text>
       <View className="h-1" />
-      <View className="flex border-2 border-slate-800 p-4 rounded-lg">
+      <View
+        className={`flex border-2 border-slate-800 p-${paddingSize} rounded-lg`}
+      >
         <TextInput
           className="grow"
           onFocus={handleOnFocus}
