@@ -13,7 +13,6 @@ import { useBottomSheetInternal } from "@gorhom/bottom-sheet";
 
 type InputProps = TextInputProps & {
   label: string;
-  defaultValue?: string;
   onPress?: () => void;
   readonly?: boolean;
 };
@@ -26,6 +25,8 @@ const Input: React.FC<InputProps> = ({
   readonly,
   ...props
 }) => {
+  const paddingSize = Platform.OS === "android" ? "2" : "4";
+
   const { shouldHandleKeyboardEvents } = useBottomSheetInternal();
 
   const handleOnFocus = useCallback(
@@ -61,8 +62,6 @@ const Input: React.FC<InputProps> = ({
       </View>
     );
   }
-
-  const paddingSize = Platform.OS === "android" ? "2" : "4";
 
   return (
     <View>

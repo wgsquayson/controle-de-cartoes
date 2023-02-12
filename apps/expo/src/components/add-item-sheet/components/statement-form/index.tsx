@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { Platform, Text, View } from "react-native";
+import { MaskService } from "react-native-masked-text";
 import { Item } from "react-native-picker-select";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import DateTimePicker, {
@@ -9,6 +10,9 @@ import DateTimePicker, {
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 
 import { api } from "../../../../utils/api";
+import formatCurrency, {
+  sanitizeCurrency,
+} from "../../../../utils/format-currency";
 import formatDate from "../../../../utils/format-date";
 import Button from "../../../button";
 import Input from "../../../input";
@@ -70,7 +74,7 @@ const StatementForm: React.FC<StatementFormProps> = ({
     if (!selectedCard) return;
 
     createStatement({
-      amount: Number(amount),
+      amount: sanitizeCurrency(amount),
       cardId: selectedCard,
       description,
       paymentDate,
@@ -141,7 +145,11 @@ const StatementForm: React.FC<StatementFormProps> = ({
           name="amount"
           control={control}
           render={({ field: { value, onChange } }) => (
-            <Input label="Valor" value={value} onChangeText={onChange} />
+            <Input
+              label="Valor"
+              value={formatCurrency(value)}
+              onChangeText={onChange}
+            />
           )}
         />
         <View className="h-4" />

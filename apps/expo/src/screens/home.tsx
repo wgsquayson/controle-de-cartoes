@@ -55,6 +55,16 @@ const Home: React.FC = () => {
     return cardDebt?.amount;
   };
 
+  const getTotalDebt = () => {
+    const debtByCard = cards.data?.map((card) => {
+      return card.debt.reduce((prev, curr) => {
+        return prev + curr.amount;
+      }, 0);
+    });
+
+    return debtByCard?.reduce((prev, curr) => prev + curr, 0);
+  };
+
   const statementsDetail = ({
     cardId,
     purchaseDate,
@@ -63,6 +73,11 @@ const Home: React.FC = () => {
     purchaseDate: Date;
   }) => {
     return `${getCard(cardId)?.name} | Comprado em ${formatDate(purchaseDate)}`;
+  };
+
+  const onFinish = () => {
+    cards.refetch();
+    statements.refetch();
   };
 
   if (cards.isLoading || statements.isLoading)
@@ -86,21 +101,20 @@ const Home: React.FC = () => {
         </Text>
         <View className="h-2" />
         <Text className="text-base text-slate-200 font-bold">
-          Gasto total: R$ 10,00
+          Gasto total: {formatCurrency(getTotalDebt())}
         </Text>
         <View className="h-4" />
         {cards.data &&
           cards.data?.map(({ id, name, lastFourDigits, dueDay }) => (
             <React.Fragment key={id}>
               <Statement
-                onPress={async () => {
+                onPress={() => {
                   deleteCard(id);
 
-                  await cards.refetch();
-                  await statements.refetch();
+                  onFinish();
                 }}
                 title={name}
-                amount={formatCurrency(getDebt(id, "2023", "3"))}
+                amount={"Dívida: " + formatCurrency(getDebt(id, "2023", "2"))}
                 detail={cardsDetail({ dueDay, lastFourDigits })}
               />
               <View className="h-4" />
@@ -116,11 +130,10 @@ const Home: React.FC = () => {
             ({ id, amount, description, purchaseDate, cardId }) => (
               <React.Fragment key={id}>
                 <Statement
-                  onPress={async () => {
+                  onPress={() => {
                     deleteStatement(id);
 
-                    await cards.refetch();
-                    await statements.refetch();
+                    onFinish();
                   }}
                   title={description}
                   amount={formatCurrency(amount)}
@@ -136,7 +149,7 @@ const Home: React.FC = () => {
       <AddItemSheet
         ref={bottomSheetRef}
         onClose={closeBottomSheet}
-        onFinish={cards.refetch}
+        onFinish={onFinish}
         cards={cards.data ?? []}
       />
     </SafeAreaView>

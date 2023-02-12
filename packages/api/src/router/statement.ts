@@ -25,8 +25,6 @@ export const statementRouter = createTRPCRouter({
         },
       });
 
-      console.log(cardDebt);
-
       if (cardDebt) {
         await ctx.prisma.debt.update({
           where: { id: cardDebt.id },
@@ -45,7 +43,32 @@ export const statementRouter = createTRPCRouter({
 
       return ctx.prisma.statement.create({ data: input });
     }),
-  delete: publicProcedure.input(z.string()).mutation(({ ctx, input }) => {
+  delete: publicProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
+    const statement = await ctx.prisma.statement.findFirst({
+      where: {
+        id: input,
+      },
+    });
+
+    if (statement) {
+      const cardDebt = await ctx.prisma.debt.findFirst({
+        where: {
+          cardId: statement.cardId,
+          month: (statement.paymentDate.getMonth() + 1).toString(),
+          year: statement.paymentDate.getFullYear().toString(),
+        },
+      });
+
+      if (cardDebt) {
+        const newAmount = cardDebt.amount - statement.amount;
+
+        await ctx.prisma.debt.update({
+          where: { id: cardDebt.id },
+          data: { amount: newAmount },
+        });
+      }
+    }
+
     return ctx.prisma.statement.delete({ where: { id: input } });
   }),
 });
