@@ -6,6 +6,22 @@ export const statementRouter = createTRPCRouter({
   all: publicProcedure.query(({ ctx }) => {
     return ctx.prisma.statement.findMany({ orderBy: { id: "desc" } });
   }),
+  byFilter: publicProcedure
+    .input(
+      z.object({
+        paymentMonth: z.string(),
+        paymentYear: z.string(),
+      }),
+    )
+    .query(({ ctx, input }) => {
+      return ctx.prisma.statement.findMany({
+        where: {
+          paymentMonth: input.paymentMonth,
+          paymentYear: input.paymentYear,
+        },
+        orderBy: { id: "desc" },
+      });
+    }),
   create: publicProcedure
     .input(
       z.object({
@@ -13,15 +29,16 @@ export const statementRouter = createTRPCRouter({
         amount: z.number(),
         purchaseDate: z.date(),
         cardId: z.string(),
-        paymentDate: z.date(),
+        paymentMonth: z.string(),
+        paymentYear: z.string(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const cardDebt = await ctx.prisma.debt.findFirst({
         where: {
           cardId: input.cardId,
-          month: (input.paymentDate.getMonth() + 1).toString(),
-          year: input.paymentDate.getFullYear().toString(),
+          month: input.paymentMonth,
+          year: input.paymentYear,
         },
       });
 
@@ -34,8 +51,8 @@ export const statementRouter = createTRPCRouter({
         await ctx.prisma.debt.create({
           data: {
             amount: input.amount,
-            month: (input.paymentDate.getMonth() + 1).toString(),
-            year: input.paymentDate.getFullYear().toString(),
+            month: input.paymentMonth,
+            year: input.paymentYear,
             cardId: input.cardId,
           },
         });
@@ -54,8 +71,8 @@ export const statementRouter = createTRPCRouter({
       const cardDebt = await ctx.prisma.debt.findFirst({
         where: {
           cardId: statement.cardId,
-          month: (statement.paymentDate.getMonth() + 1).toString(),
-          year: statement.paymentDate.getFullYear().toString(),
+          month: statement.paymentMonth,
+          year: statement.paymentYear,
         },
       });
 

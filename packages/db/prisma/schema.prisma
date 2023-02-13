@@ -22,7 +22,8 @@ model Statement {
     amount         Int
     purchaseDate   DateTime
     cardId         String
-    paymentDate    DateTime
+    paymentMonth   String
+    paymentYear    String   
     card           Card    @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
 

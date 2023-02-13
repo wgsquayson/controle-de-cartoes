@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Platform, Text, View } from "react-native";
 import { MaskService } from "react-native-masked-text";
 import { Item } from "react-native-picker-select";
@@ -14,6 +14,7 @@ import formatCurrency, {
   sanitizeCurrency,
 } from "../../../../utils/format-currency";
 import formatDate from "../../../../utils/format-date";
+import monthArray from "../../../../utils/monthArray";
 import Button from "../../../button";
 import Input from "../../../input";
 import Picker from "../../../picker";
@@ -44,11 +45,12 @@ const StatementForm: React.FC<StatementFormProps> = ({
 
   const today = new Date();
 
-  const aMonthFromNow = new Date(today.setMonth(today.getMonth() + 1));
-
   const [purchaseDate, setPurchaseDate] = useState<Date>(new Date());
   const [selectedCard, setSelectedCard] = useState<string>();
-  const [paymentDate, setPaymentDate] = useState<Date>(aMonthFromNow);
+  const [paymentYear, setPaymentYear] = useState(String(today.getFullYear()));
+  const [paymentMonth, setPaymentMonth] = useState(
+    String(today.getMonth() + 1),
+  );
 
   const pickerCards: Item[] = cards
     .map((card) => {
@@ -71,13 +73,14 @@ const StatementForm: React.FC<StatementFormProps> = ({
     amount,
     description,
   }) => {
-    if (!selectedCard) return;
+    if (!selectedCard || sanitizeCurrency(amount) === 0) return;
 
     createStatement({
       amount: sanitizeCurrency(amount),
       cardId: selectedCard,
       description,
-      paymentDate,
+      paymentMonth: String(Number(paymentMonth) + 1),
+      paymentYear,
       purchaseDate,
     });
   };
@@ -125,6 +128,27 @@ const StatementForm: React.FC<StatementFormProps> = ({
     [],
   );
 
+  const monthPickerItems: Item[] = useMemo(
+    () =>
+      monthArray.map((month, index) => ({
+        label: month,
+        value: index,
+      })),
+    [],
+  );
+
+  const yearPickerItems: Item[] = useMemo(() => {
+    const yearsArray = [];
+    for (let index = 0; index < 10; index++) {
+      yearsArray.push(String(Number(paymentYear) - 5 + index));
+    }
+
+    return yearsArray.map((year) => ({
+      label: year,
+      value: year,
+    }));
+  }, []);
+
   return (
     <>
       <Animated.View
@@ -171,17 +195,27 @@ const StatementForm: React.FC<StatementFormProps> = ({
             setSelectedCard(value);
           }}
         />
+
         <View className="h-4" />
-        {renderDatePickerComponent({
-          label: "Pagar em",
-          value: paymentDate,
-          onChange: (_, date) => setPaymentDate(date as Date),
-          onPress: () =>
-            DateTimePickerAndroid.open({
-              value: paymentDate,
-              onChange: (_, date) => setPaymentDate(date as Date),
-            }),
-        })}
+        <Picker
+          label="Mês de pagamento"
+          items={monthPickerItems}
+          placeholder={{
+            label: monthArray[Number(paymentMonth)],
+            value: paymentMonth,
+          }}
+          onValueChange={(value) => setPaymentMonth(value)}
+        />
+        <View className="h-4" />
+        <Picker
+          label="Ano de pagamento"
+          items={yearPickerItems}
+          placeholder={{
+            label: paymentYear,
+            value: paymentYear,
+          }}
+          onValueChange={(value) => setPaymentYear(value)}
+        />
         <View className="h-6" />
         <Button
           onPress={handleSubmit(onSubmit)}
