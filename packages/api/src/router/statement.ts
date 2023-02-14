@@ -14,13 +14,15 @@ export const statementRouter = createTRPCRouter({
       }),
     )
     .query(({ ctx, input }) => {
-      return ctx.prisma.statement.findMany({
-        where: {
-          paymentMonth: input.paymentMonth,
-          paymentYear: input.paymentYear,
-        },
-        orderBy: { id: "desc" },
-      });
+      return (
+        ctx.prisma.statement.findMany({
+          where: {
+            paymentMonth: input.paymentMonth,
+            paymentYear: input.paymentYear,
+          },
+          orderBy: { id: "desc" },
+        }) ?? []
+      );
     }),
   create: publicProcedure
     .input(

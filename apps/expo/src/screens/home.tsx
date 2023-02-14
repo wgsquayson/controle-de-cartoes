@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { Item } from "react-native-picker-select";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,25 +15,41 @@ const Home: React.FC = () => {
 
   const [selectedMonth, setSelectedMonth] = useState(date.getMonth());
   const [selectedYear, setSelectedYear] = useState(date.getFullYear());
+  const [nextMonth, setNextMonth] = useState(0);
+  const [nextYear, setNextYear] = useState(0);
 
   const statements = api.statement.byFilter.useQuery({
     paymentMonth: String(selectedMonth + 1),
     paymentYear: String(selectedYear),
   });
+
   const cards = api.card.all.useQuery();
 
-  const { mutate: deleteCard } = api.card.delete.useMutation();
-  const { mutate: deleteStatement } = api.statement.delete.useMutation();
+  const onFinish = async () => {
+    await cards.refetch();
+    await statements.refetch();
+  };
+
+  const { mutate: deleteCard } = api.card.delete.useMutation({
+    onSuccess: async () => {
+      await onFinish();
+    },
+  });
+  const { mutate: deleteStatement } = api.statement.delete.useMutation({
+    onSuccess: async () => {
+      await onFinish();
+    },
+  });
 
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const openBottomSheet = () => {
+  const openBottomSheet = useCallback(() => {
     bottomSheetRef.current?.expand();
-  };
+  }, []);
 
-  const closeBottomSheet = () => {
+  const closeBottomSheet = useCallback(() => {
     bottomSheetRef.current?.close();
-  };
+  }, []);
 
   const cardsDetail = ({
     dueDay,
@@ -105,11 +115,6 @@ const Home: React.FC = () => {
     ]?.toLowerCase()}/${paymentYear}`;
   };
 
-  const onFinish = useCallback(() => {
-    cards.refetch();
-    statements.refetch();
-  }, [cards, statements]);
-
   const monthPickerItems: Item[] = useMemo(
     () =>
       monthArray.map((month, index) => ({
@@ -131,9 +136,17 @@ const Home: React.FC = () => {
     }));
   }, []);
 
-  useEffect(() => {
-    onFinish();
-  }, [selectedMonth, selectedYear]);
+  const handleStatementDelete = useCallback((id: string) => {
+    return () => {
+      deleteStatement(id);
+    };
+  }, []);
+
+  const handleCardDelete = useCallback((id: string) => {
+    return () => {
+      deleteCard(id);
+    };
+  }, []);
 
   if (cards.isLoading || statements.isLoading)
     return (
@@ -156,7 +169,8 @@ const Home: React.FC = () => {
             label: String(selectedYear),
             value: String(selectedYear),
           }}
-          onValueChange={(value) => setSelectedYear(value)}
+          onValueChange={(value) => setNextYear(value)}
+          onDonePress={() => setSelectedYear(nextMonth)}
           variant="secondary"
         />
         <View className="h-4" />
@@ -167,7 +181,8 @@ const Home: React.FC = () => {
             label: monthArray[selectedMonth],
             value: selectedMonth,
           }}
-          onValueChange={(value) => setSelectedMonth(value)}
+          onValueChange={(value) => setNextMonth(value)}
+          onDonePress={() => setSelectedMonth(nextMonth)}
           variant="secondary"
         />
         <View className="h-4" />
@@ -175,15 +190,15 @@ const Home: React.FC = () => {
           Dívidas em {monthArray[selectedMonth]?.toLowerCase()}/{selectedYear}
         </Text>
         <View className="h-4" />
+        <Text className="text-base text-slate-200 font-bold">
+          Total: {formatCurrency(getTotalDebt())}
+        </Text>
+        <View className="h-4" />
         {cards.data && cards.data.length > 0 ? (
           cards.data?.map(({ id, name, lastFourDigits, dueDay }) => (
             <React.Fragment key={id}>
               <Statement
-                onPress={() => {
-                  deleteCard(id);
-
-                  onFinish();
-                }}
+                onPress={handleCardDelete(id)}
                 title={name}
                 amount={
                   "Dívida: " +
@@ -222,11 +237,7 @@ const Home: React.FC = () => {
             }) => (
               <React.Fragment key={id}>
                 <Statement
-                  onPress={() => {
-                    deleteStatement(id);
-
-                    onFinish();
-                  }}
+                  onPress={handleStatementDelete(id)}
                   title={description}
                   amount={formatCurrency(amount)}
                   detail={statementsDetail({
@@ -249,8 +260,8 @@ const Home: React.FC = () => {
       <AddItemSheet
         ref={bottomSheetRef}
         onClose={closeBottomSheet}
-        onFinish={onFinish}
         cards={cards.data ?? []}
+        onFinish={onFinish}
       />
     </SafeAreaView>
   );

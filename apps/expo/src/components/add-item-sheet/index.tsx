@@ -93,7 +93,7 @@ const AddItemSheet: React.ForwardRefRenderFunction<
           </Animated.View>
         );
     }
-  }, [cards, selectedOption]);
+  }, [selectedOption, cards.length]);
 
   return (
     <BottomSheet
@@ -106,6 +106,7 @@ const AddItemSheet: React.ForwardRefRenderFunction<
       contentHeight={animatedContentHeight}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
+      enableOverDrag
     >
       <ScrollView>
         <BottomSheetView onLayout={handleContentLayout}>
