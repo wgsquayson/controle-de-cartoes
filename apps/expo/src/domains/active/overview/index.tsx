@@ -1,22 +1,40 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native";
 import { Item } from "react-native-picker-select";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import BottomSheet from "@gorhom/bottom-sheet";
-import { useFocusEffect } from "@react-navigation/native";
+import {
+  NavigationProp,
+  useFocusEffect,
+  useNavigation,
+} from "@react-navigation/native";
 
+import { StackParamList } from "../..";
 import { AddItemSheet, Button, Picker, Statement } from "../../../components";
 import { api, formatCurrency, formatDate, monthArray } from "../../../utils";
 import { Statement as StatementType } from ".prisma/client";
 
 const Overview: React.FC = () => {
+  const navigation =
+    useNavigation<NavigationProp<StackParamList, "Overview">>();
+
   const date = new Date();
 
   const [selectedMonth, setSelectedMonth] = useState(date.getMonth());
   const [selectedYear, setSelectedYear] = useState(date.getFullYear());
   const [nextMonth, setNextMonth] = useState(0);
   const [nextYear, setNextYear] = useState(0);
+
+  const bottomSheetRef = useRef<BottomSheet>(null);
+
+  const openBottomSheet = useCallback(() => {
+    bottomSheetRef.current?.expand();
+  }, []);
+
+  const closeBottomSheet = useCallback(() => {
+    bottomSheetRef.current?.close();
+  }, []);
 
   const statements = api.statement.byFilter.useQuery({
     paymentMonth: String(selectedMonth + 1),
@@ -46,16 +64,6 @@ const Overview: React.FC = () => {
       await refetch();
     },
   });
-
-  const bottomSheetRef = useRef<BottomSheet>(null);
-
-  const openBottomSheet = useCallback(() => {
-    bottomSheetRef.current?.expand();
-  }, []);
-
-  const closeBottomSheet = useCallback(() => {
-    bottomSheetRef.current?.close();
-  }, []);
 
   const cardsDetail = ({
     dueDay,
@@ -122,6 +130,43 @@ const Overview: React.FC = () => {
     }, []),
   );
 
+  const onCardPress = (id: string) => {
+    const onDelete = () =>
+      Alert.alert("Tem certeza?", "", [
+        {
+          text: "Excluir",
+          onPress: () => {
+            deleteCard(id);
+          },
+          style: "destructive",
+        },
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+      ]);
+
+    return Alert.alert("O que deseja fazer com este cartão?", "", [
+      {
+        text: "Editar",
+        onPress: () => {
+          navigation.navigate("CardForm", {
+            cardId: id,
+          });
+        },
+      },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: onDelete,
+      },
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+    ]);
+  };
+
   if (cards.isLoading || statements.isLoading)
     return (
       <View className="grow bg-slate-800 items-center justify-center">
@@ -175,7 +220,7 @@ const Overview: React.FC = () => {
             <React.Fragment key={id}>
               <Statement
                 onPress={() => {
-                  deleteCard(id);
+                  onCardPress(id);
                 }}
                 title={name}
                 amount={

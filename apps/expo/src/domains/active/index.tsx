@@ -10,8 +10,12 @@ import StatementForm from "./statement-form";
 
 export type ActiveStackParamList = {
   Overview: undefined;
-  CardForm: undefined;
-  StatementForm: undefined;
+  CardForm: {
+    cardId?: string;
+  };
+  StatementForm: {
+    statementId?: string;
+  };
 };
 
 type ActiveStackRoutesType = RouteConfig<

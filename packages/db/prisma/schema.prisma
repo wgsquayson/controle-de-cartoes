@@ -13,6 +13,7 @@ model Debt {
     month          String
     year           String
     amount         Int
+    isPaid         String?
     card           Card    @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
 
@@ -24,6 +25,7 @@ model Statement {
     cardId         String
     paymentMonth   String
     paymentYear    String   
+    isPaid         String?
     card           Card    @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
 
