@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -147,6 +148,13 @@ const StatementForm: React.FC = () => {
       value: year,
     }));
   }, []);
+
+  if (cards.isLoading)
+    return (
+      <View className="grow bg-slate-800 items-center justify-center">
+        <ActivityIndicator color="#FFF" animating size="large" />
+      </View>
+    );
 
   return (
     <SafeAreaView className="grow bg-slate-800 p-6">

@@ -25,19 +25,25 @@ const Overview: React.FC = () => {
 
   const cards = api.card.all.useQuery();
 
-  const onFinish = async () => {
+  const monthDebt = api.debt.totalDebtByDate.useQuery({
+    month: String(selectedMonth + 1),
+    year: String(selectedYear),
+  });
+
+  const refetch = async () => {
     await cards.refetch();
     await statements.refetch();
+    await monthDebt.refetch();
   };
 
   const { mutate: deleteCard } = api.card.delete.useMutation({
     onSuccess: async () => {
-      await onFinish();
+      await refetch();
     },
   });
   const { mutate: deleteStatement } = api.statement.delete.useMutation({
     onSuccess: async () => {
-      await onFinish();
+      await refetch();
     },
   });
 
@@ -81,22 +87,6 @@ const Overview: React.FC = () => {
     return cardDebt?.amount;
   };
 
-  const getTotalDebt = () => {
-    const debtByCard = cards.data?.map((card) => {
-      return card.debt.reduce((prev, curr) => {
-        return (
-          prev +
-          (curr.month === String(selectedMonth + 1) &&
-          curr.year === String(selectedYear)
-            ? curr.amount
-            : 0)
-        );
-      }, 0);
-    });
-
-    return debtByCard?.reduce((prev, curr) => prev + curr, 0);
-  };
-
   const statementsDetail = (statement: StatementType) => {
     return `${getCard(statement.cardId)?.name}\nComprado em ${formatDate(
       statement.purchaseDate,
@@ -128,8 +118,7 @@ const Overview: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
-      cards.refetch();
-      statements.refetch();
+      refetch();
     }, []),
   );
 
@@ -144,6 +133,10 @@ const Overview: React.FC = () => {
     <SafeAreaView className="grow bg-slate-800 p-6">
       <StatusBar style="light" />
       <ScrollView>
+        <Text className="text-2xl text-slate-200 font-bold">
+          Controle de cartões
+        </Text>
+        <View className="h-4" />
         <View className="flex flex-row">
           <Picker
             label="Ano"
@@ -152,7 +145,7 @@ const Overview: React.FC = () => {
               label: String(selectedYear),
               value: String(selectedYear),
             }}
-            onValueChange={(value) => setNextYear(value)}
+            onValueChange={(value: number) => setNextYear(value)}
             onDonePress={() => setSelectedYear(nextYear)}
           />
           <View className="w-4" />
@@ -163,9 +156,9 @@ const Overview: React.FC = () => {
               label: monthArray[selectedMonth],
               value: selectedMonth,
             }}
-            onValueChange={(value) => setNextMonth(value)}
+            onValueChange={(value: number) => setNextMonth(value)}
             onDonePress={() => setSelectedMonth(nextMonth)}
-            width="grow w-64"
+            width="w-72"
           />
         </View>
         <View className="h-4" />
@@ -174,7 +167,7 @@ const Overview: React.FC = () => {
         </Text>
         <View className="h-4" />
         <Text className="text-base text-slate-200 font-bold">
-          Total: {formatCurrency(getTotalDebt())}
+          Total: {formatCurrency(monthDebt.data)}
         </Text>
         <View className="h-4" />
         {cards.data && cards.data.length > 0 ? (
