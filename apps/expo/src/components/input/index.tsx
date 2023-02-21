@@ -1,15 +1,12 @@
-import React, { useCallback } from "react";
+import React from "react";
 import {
-  NativeSyntheticEvent,
   Platform,
   Pressable,
   Text,
   TextInput,
-  TextInputFocusEventData,
   TextInputProps,
   View,
 } from "react-native";
-import { useBottomSheetInternal } from "@gorhom/bottom-sheet";
 
 type InputProps = TextInputProps & {
   label: string;
@@ -19,44 +16,20 @@ type InputProps = TextInputProps & {
 
 const Input: React.FC<InputProps> = ({
   label = "",
-  onFocus,
-  onBlur,
   onPress,
   readonly,
   ...props
 }) => {
   const paddingSize = Platform.OS === "android" ? "2" : "4";
 
-  const { shouldHandleKeyboardEvents } = useBottomSheetInternal();
-
-  const handleOnFocus = useCallback(
-    (args: NativeSyntheticEvent<TextInputFocusEventData>) => {
-      shouldHandleKeyboardEvents.value = true;
-      if (onFocus) {
-        onFocus(args);
-      }
-    },
-    [onFocus, shouldHandleKeyboardEvents],
-  );
-
-  const handleOnBlur = useCallback(
-    (args: NativeSyntheticEvent<TextInputFocusEventData>) => {
-      shouldHandleKeyboardEvents.value = false;
-      if (onBlur) {
-        onBlur(args);
-      }
-    },
-    [onBlur, shouldHandleKeyboardEvents],
-  );
-
   if (readonly) {
     return (
       <View>
-        <Text className="text-base text-slate-800 font-medium">{label}</Text>
+        <Text className="text-base text-slate-300 font-medium">{label}</Text>
         <View className="h-1" />
         <Pressable onPress={onPress}>
-          <View className="flex border-2 border-slate-800 p-4 rounded-lg">
-            <Text>{props.value}</Text>
+          <View className="flex border-2 border-slate-300 p-4 rounded-lg">
+            <Text className="text-slate-300">{props.value}</Text>
           </View>
         </Pressable>
       </View>
@@ -65,17 +38,12 @@ const Input: React.FC<InputProps> = ({
 
   return (
     <View>
-      <Text className="text-base text-slate-800 font-medium">{label}</Text>
+      <Text className="text-base text-slate-300 font-medium">{label}</Text>
       <View className="h-1" />
       <View
-        className={`flex border-2 border-slate-800 p-${paddingSize} rounded-lg`}
+        className={`flex border-2 border-slate-300 p-${paddingSize} rounded-lg`}
       >
-        <TextInput
-          className="grow"
-          onFocus={handleOnFocus}
-          onBlur={handleOnBlur}
-          {...props}
-        />
+        <TextInput className="grow text-slate-300" {...props} />
       </View>
     </View>
   );

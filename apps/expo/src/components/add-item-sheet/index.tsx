@@ -1,29 +1,25 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { ScrollView, View } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import BottomSheet, {
   BottomSheetProps,
   BottomSheetView,
   useBottomSheetDynamicSnapPoints,
 } from "@gorhom/bottom-sheet";
+import { NavigationProp, useNavigation } from "@react-navigation/native";
 
+import { StackParamList } from "../../domains";
 import Button from "../button";
-import CardForm from "./components/card-form";
-import StatementForm from "./components/statement-form";
-import { Card } from ".prisma/client";
 
 type AddItemSheetProps = Partial<BottomSheetProps> & {
-  onFinish: () => void;
-  cards: Card[];
+  hasCards?: boolean;
 };
 
 const AddItemSheet: React.ForwardRefRenderFunction<
   BottomSheet,
   AddItemSheetProps
-> = ({ onClose, onFinish, cards }, ref) => {
-  const [selectedOption, setSelectedOption] = useState<
-    "card" | "statement" | null
-  >(null);
+> = ({ onClose, hasCards }, ref) => {
+  const navigation =
+    useNavigation<NavigationProp<StackParamList, "Overview">>();
 
   const initialSnapPoints = useMemo(() => ["CONTENT_HEIGHT"], []);
 
@@ -34,66 +30,15 @@ const AddItemSheet: React.ForwardRefRenderFunction<
     handleContentLayout,
   } = useBottomSheetDynamicSnapPoints(initialSnapPoints);
 
-  const handleFinish = () => {
-    onFinish();
-    setSelectedOption(null);
+  const handleAddNewCard = () => {
+    onClose?.();
+    return navigation.navigate("CardForm");
   };
 
-  const renderContent = useCallback(() => {
-    switch (selectedOption) {
-      case "card":
-        return (
-          <CardForm
-            onFinish={handleFinish}
-            onClose={onClose}
-            onGoBack={() => setSelectedOption(null)}
-          />
-        );
-
-      case "statement":
-        return (
-          <StatementForm
-            cards={cards}
-            onGoBack={() => setSelectedOption(null)}
-            onFinish={handleFinish}
-            onClose={onClose}
-          />
-        );
-
-      default:
-        return (
-          <Animated.View
-            key="1"
-            className="p-4"
-            entering={FadeIn}
-            exiting={FadeOut}
-          >
-            <Button
-              onPress={() => setSelectedOption("card")}
-              text="Adicionar cartão"
-              variant="secondary"
-            />
-            <View className="h-4" />
-            {cards.length > 0 && (
-              <>
-                <Button
-                  onPress={() => setSelectedOption("statement")}
-                  text="Adicionar gasto"
-                  variant="secondary"
-                />
-                <View className="h-6" />
-              </>
-            )}
-            <Button
-              onPress={() => onClose?.()}
-              text="Fechar"
-              variant="tertiary"
-            />
-            <View className="h-6" />
-          </Animated.View>
-        );
-    }
-  }, [selectedOption, cards.length]);
+  const handleAddStatement = () => {
+    onClose?.();
+    return navigation.navigate("StatementForm");
+  };
 
   return (
     <BottomSheet
@@ -110,7 +55,26 @@ const AddItemSheet: React.ForwardRefRenderFunction<
     >
       <ScrollView>
         <BottomSheetView onLayout={handleContentLayout}>
-          {renderContent()}
+          <View className="p-4">
+            <Button
+              onPress={handleAddNewCard}
+              text="Adicionar cartão"
+              variant="secondary"
+            />
+            <View className="h-4" />
+            {hasCards && (
+              <>
+                <Button
+                  onPress={handleAddStatement}
+                  text="Adicionar gasto"
+                  variant="secondary"
+                />
+                <View className="h-6" />
+              </>
+            )}
+            <Button onPress={onClose} text="Fechar" variant="tertiary" />
+          </View>
+          <View className="h-6" />
         </BottomSheetView>
       </ScrollView>
     </BottomSheet>

@@ -2,15 +2,15 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { Item } from "react-native-picker-select";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import BottomSheet from "@gorhom/bottom-sheet";
+import { useFocusEffect } from "@react-navigation/native";
 
-import { AddItemSheet, Button, Picker, Statement } from "../components";
-import { api } from "../utils/api";
-import formatCurrency from "../utils/format-currency";
-import formatDate from "../utils/format-date";
-import monthArray from "../utils/monthArray";
+import { AddItemSheet, Button, Picker, Statement } from "../../../components";
+import { api, formatCurrency, formatDate, monthArray } from "../../../utils";
+import { Statement as StatementType } from ".prisma/client";
 
-const Home: React.FC = () => {
+const Overview: React.FC = () => {
   const date = new Date();
 
   const [selectedMonth, setSelectedMonth] = useState(date.getMonth());
@@ -97,22 +97,12 @@ const Home: React.FC = () => {
     return debtByCard?.reduce((prev, curr) => prev + curr, 0);
   };
 
-  const statementsDetail = ({
-    cardId,
-    purchaseDate,
-    paymentMonth,
-    paymentYear,
-  }: {
-    cardId: string;
-    purchaseDate: Date;
-    paymentMonth: string;
-    paymentYear: string;
-  }) => {
-    return `${getCard(cardId)?.name}\nComprado em ${formatDate(
-      purchaseDate,
+  const statementsDetail = (statement: StatementType) => {
+    return `${getCard(statement.cardId)?.name}\nComprado em ${formatDate(
+      statement.purchaseDate,
     )}\nPagar em ${monthArray[
-      Number(paymentMonth) - 1
-    ]?.toLowerCase()}/${paymentYear}`;
+      Number(statement.paymentMonth) - 1
+    ]?.toLowerCase()}/${statement.paymentYear}`;
   };
 
   const monthPickerItems: Item[] = useMemo(
@@ -136,17 +126,12 @@ const Home: React.FC = () => {
     }));
   }, []);
 
-  const handleStatementDelete = useCallback((id: string) => {
-    return () => {
-      deleteStatement(id);
-    };
-  }, []);
-
-  const handleCardDelete = useCallback((id: string) => {
-    return () => {
-      deleteCard(id);
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      cards.refetch();
+      statements.refetch();
+    }, []),
+  );
 
   if (cards.isLoading || statements.isLoading)
     return (
@@ -157,34 +142,32 @@ const Home: React.FC = () => {
 
   return (
     <SafeAreaView className="grow bg-slate-800 p-6">
+      <StatusBar style="light" />
       <ScrollView>
-        <Text className="text-2xl text-slate-200 font-bold">
-          Controle de cartões
-        </Text>
-        <View className="h-4" />
-        <Picker
-          label="Ano"
-          items={yearPickerItems}
-          placeholder={{
-            label: String(selectedYear),
-            value: String(selectedYear),
-          }}
-          onValueChange={(value) => setNextYear(value)}
-          onDonePress={() => setSelectedYear(nextMonth)}
-          variant="secondary"
-        />
-        <View className="h-4" />
-        <Picker
-          label="Mês"
-          items={monthPickerItems}
-          placeholder={{
-            label: monthArray[selectedMonth],
-            value: selectedMonth,
-          }}
-          onValueChange={(value) => setNextMonth(value)}
-          onDonePress={() => setSelectedMonth(nextMonth)}
-          variant="secondary"
-        />
+        <View className="flex flex-row">
+          <Picker
+            label="Ano"
+            items={yearPickerItems}
+            placeholder={{
+              label: String(selectedYear),
+              value: String(selectedYear),
+            }}
+            onValueChange={(value) => setNextYear(value)}
+            onDonePress={() => setSelectedYear(nextYear)}
+          />
+          <View className="w-4" />
+          <Picker
+            label="Mês"
+            items={monthPickerItems}
+            placeholder={{
+              label: monthArray[selectedMonth],
+              value: selectedMonth,
+            }}
+            onValueChange={(value) => setNextMonth(value)}
+            onDonePress={() => setSelectedMonth(nextMonth)}
+            width="grow w-64"
+          />
+        </View>
         <View className="h-4" />
         <Text className="text-xl text-slate-200 font-bold">
           Dívidas em {monthArray[selectedMonth]?.toLowerCase()}/{selectedYear}
@@ -198,7 +181,9 @@ const Home: React.FC = () => {
           cards.data?.map(({ id, name, lastFourDigits, dueDay }) => (
             <React.Fragment key={id}>
               <Statement
-                onPress={handleCardDelete(id)}
+                onPress={() => {
+                  deleteCard(id);
+                }}
                 title={name}
                 amount={
                   "Dívida: " +
@@ -225,32 +210,19 @@ const Home: React.FC = () => {
         </Text>
         <View className="h-4" />
         {statements.data && statements.data.length > 0 ? (
-          statements.data?.map(
-            ({
-              id,
-              amount,
-              description,
-              purchaseDate,
-              cardId,
-              paymentMonth,
-              paymentYear,
-            }) => (
-              <React.Fragment key={id}>
-                <Statement
-                  onPress={handleStatementDelete(id)}
-                  title={description}
-                  amount={formatCurrency(amount)}
-                  detail={statementsDetail({
-                    cardId,
-                    purchaseDate,
-                    paymentMonth,
-                    paymentYear,
-                  })}
-                />
-                <View className="h-4" />
-              </React.Fragment>
-            ),
-          )
+          statements.data?.map((statement) => (
+            <React.Fragment key={statement.id}>
+              <Statement
+                onPress={() => {
+                  deleteStatement(statement.id);
+                }}
+                title={statement.description}
+                amount={formatCurrency(statement.amount)}
+                detail={statementsDetail(statement)}
+              />
+              <View className="h-4" />
+            </React.Fragment>
+          ))
         ) : (
           <Text className="text-base text-slate-200">Sem registros.</Text>
         )}
@@ -260,11 +232,10 @@ const Home: React.FC = () => {
       <AddItemSheet
         ref={bottomSheetRef}
         onClose={closeBottomSheet}
-        cards={cards.data ?? []}
-        onFinish={onFinish}
+        hasCards={cards.data && cards.data?.length > 0}
       />
     </SafeAreaView>
   );
 };
 
-export default Home;
+export default Overview;

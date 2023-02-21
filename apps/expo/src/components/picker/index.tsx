@@ -7,23 +7,29 @@ type PickerVariants = "primary" | "secondary";
 type PickerProps = PickerSelectProps & {
   label: string;
   variant?: PickerVariants;
+  width?: string;
 };
 
 const Picker: React.FC<PickerProps> = ({
   label,
   variant = "primary",
+  width,
   ...props
 }) => {
   const paddingSize = Platform.OS === "android" ? "1" : "4";
 
   const containerStyle: Record<PickerVariants, string> = {
-    primary: `flex border-2 border-slate-800 p-${paddingSize} rounded-lg`,
-    secondary: `flex border-2 border-slate-300 p-${paddingSize} rounded-lg`,
+    primary: `flex border-2 border-slate-300 p-${paddingSize} rounded-lg ${
+      width ?? ""
+    }`,
+    secondary: `flex border-2 border-slate-800 p-${paddingSize} rounded-lg ${
+      width ?? ""
+    }`,
   };
 
   const textStyle: Record<PickerVariants, string> = {
-    primary: "text-base text-slate-800 font-medium",
-    secondary: "text-base text-slate-300 font-medium",
+    primary: "text-base text-slate-300 font-medium",
+    secondary: "text-base text-slate-800 font-medium",
   };
 
   return (
@@ -35,13 +41,13 @@ const Picker: React.FC<PickerProps> = ({
           placeholder={{ label: "Escolha uma opção..." }}
           style={{
             inputIOS: {
-              color: variant === "primary" ? "#000" : "#FFF",
+              color: variant === "primary" ? "#FFF" : "#000",
             },
             inputAndroid: {
-              color: variant === "primary" ? "#000" : "#FFF",
+              color: variant === "primary" ? "#FFF" : "#000",
             },
             placeholder: {
-              color: variant === "primary" ? "#000" : "#FFF",
+              color: variant === "primary" ? "#FFF" : "#000",
             },
           }}
           {...props}
