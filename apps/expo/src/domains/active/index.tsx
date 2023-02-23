@@ -34,10 +34,12 @@ const ActiveStack: ActiveStackRoutesType[] = [
   {
     name: "CardForm",
     component: CardForm,
+    initialParams: {},
   },
   {
     name: "StatementForm",
     component: StatementForm,
+    initialParams: {},
   },
 ];
 

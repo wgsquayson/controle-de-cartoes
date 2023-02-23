@@ -16,7 +16,6 @@ export const debtRouter = createTRPCRouter({
       });
 
       const debtByCard = cards.map((card) => {
-        console.log(card);
         return card.debt.reduce((prev, curr) => {
           return (
             prev +

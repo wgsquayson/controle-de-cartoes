@@ -167,6 +167,43 @@ const Overview: React.FC = () => {
     ]);
   };
 
+  const onStatementPress = (id: string) => {
+    const onDelete = () =>
+      Alert.alert("Tem certeza?", "", [
+        {
+          text: "Excluir",
+          onPress: () => {
+            deleteStatement(id);
+          },
+          style: "destructive",
+        },
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+      ]);
+
+    return Alert.alert("O que deseja fazer com este registro?", "", [
+      {
+        text: "Editar",
+        onPress: () => {
+          navigation.navigate("StatementForm", {
+            statementId: id,
+          });
+        },
+      },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: onDelete,
+      },
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+    ]);
+  };
+
   if (cards.isLoading || statements.isLoading)
     return (
       <View className="grow bg-slate-800 items-center justify-center">
@@ -252,7 +289,7 @@ const Overview: React.FC = () => {
             <React.Fragment key={statement.id}>
               <Statement
                 onPress={() => {
-                  deleteStatement(statement.id);
+                  onStatementPress(statement.id);
                 }}
                 title={statement.description}
                 amount={formatCurrency(statement.amount)}

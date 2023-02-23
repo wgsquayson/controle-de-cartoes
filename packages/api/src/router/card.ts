@@ -9,6 +9,20 @@ export const cardRouter = createTRPCRouter({
       include: { statements: true, debt: true },
     });
   }),
+  byId: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      }),
+    )
+    .query(({ ctx, input }) => {
+      return ctx.prisma.card.findFirst({
+        where: {
+          id: input.id,
+        },
+        orderBy: { id: "desc" },
+      });
+    }),
   create: publicProcedure
     .input(
       z.object({
@@ -34,6 +48,23 @@ export const cardRouter = createTRPCRouter({
       });
 
       return card;
+    }),
+  update: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        name: z.string().optional(),
+        lastFourDigits: z.string().optional(),
+        dueDay: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.prisma.card.update({
+        where: {
+          id: input.id,
+        },
+        data: input,
+      });
     }),
   delete: publicProcedure.input(z.string()).mutation(({ ctx, input }) => {
     return ctx.prisma.card.delete({ where: { id: input } });

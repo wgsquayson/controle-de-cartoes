@@ -24,6 +24,20 @@ export const statementRouter = createTRPCRouter({
         }) ?? []
       );
     }),
+  byId: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      }),
+    )
+    .query(({ ctx, input }) => {
+      return ctx.prisma.statement.findFirst({
+        where: {
+          id: input.id,
+        },
+        orderBy: { id: "desc" },
+      });
+    }),
   create: publicProcedure
     .input(
       z.object({
@@ -61,6 +75,67 @@ export const statementRouter = createTRPCRouter({
       }
 
       return ctx.prisma.statement.create({ data: input });
+    }),
+  update: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        description: z.string().optional(),
+        amount: z.number().optional(),
+        purchaseDate: z.date().optional(),
+        cardId: z.string().optional(),
+        paymentMonth: z.string().optional(),
+        paymentYear: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      console.log({ input });
+
+      const currentStatement = await ctx.prisma.statement.findFirstOrThrow({
+        where: {
+          id: input.id,
+        },
+      });
+
+      const debt = await ctx.prisma.debt.findFirst({
+        where: {
+          cardId: input.cardId,
+          month: input.paymentMonth,
+          year: input.paymentYear,
+        },
+      });
+
+      if (debt && input.amount) {
+        await ctx.prisma.debt.update({
+          where: {
+            id: debt.id,
+          },
+          data: {
+            amount:
+              input.amount > currentStatement.amount
+                ? debt.amount + (input.amount - currentStatement.amount)
+                : debt.amount - (currentStatement.amount - input.amount),
+          },
+        });
+      } else {
+        await ctx.prisma.debt.create({
+          data: {
+            amount: input.amount as number,
+            month: input.paymentMonth as string,
+            year: input.paymentYear as string,
+            cardId: input.cardId as string,
+          },
+        });
+      }
+
+      return ctx.prisma.statement.update({
+        where: {
+          id: currentStatement.id,
+        },
+        data: {
+          ...input,
+        },
+      });
     }),
   delete: publicProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
     const statement = await ctx.prisma.statement.findFirst({

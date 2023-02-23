@@ -18,7 +18,7 @@ const Routes = () => {
         screenOptions={{ headerShown: false }}
       >
         {routes.map((route) => (
-          <Stack.Screen {...route} />
+          <Stack.Screen key={route.name} {...route} />
         ))}
       </Stack.Navigator>
     </NavigationContainer>

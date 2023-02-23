@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,7 +13,12 @@ import DateTimePicker, {
   DateTimePickerAndroid,
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
+import {
+  NavigationProp,
+  RouteProp,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 
 import { StackParamList } from "../..";
@@ -35,9 +40,15 @@ export type StatementInputValues = {
 };
 
 const StatementForm: React.FC = () => {
-  const cards = api.card.all.useQuery();
   const navigation =
     useNavigation<NavigationProp<StackParamList, "StatementForm">>();
+  const route = useRoute<RouteProp<StackParamList, "StatementForm">>();
+
+  const cards = api.card.all.useQuery();
+
+  const statement = api.statement.byId.useQuery({
+    id: route.params.statementId ?? "",
+  });
 
   const { control, handleSubmit } = useForm<StatementInputValues>();
 
@@ -50,21 +61,28 @@ const StatementForm: React.FC = () => {
     String(today.getMonth() + 1),
   );
 
-  if (!cards.data || cards.isLoading) return null;
-
-  const pickerCards: Item[] = cards.data
+  const pickerCards: Item[] = cards?.data
     ?.map((card) => {
       return {
         label: card.name,
         value: card.id,
+        key: card.id,
       };
     })
-    .filter((item): item is Item => !!item);
+    .filter(Boolean) as Item[];
 
   const { mutate: createStatement, isLoading } =
     api.statement.create.useMutation({
       onSuccess() {
-        navigation.goBack();
+        return navigation.goBack();
+      },
+    });
+
+  const { mutate: updateStatement, isLoading: updateLoading } =
+    api.statement.update.useMutation({
+      onSuccess() {
+        statement.refetch();
+        return navigation.goBack();
       },
     });
 
@@ -72,9 +90,24 @@ const StatementForm: React.FC = () => {
     amount,
     description,
   }) => {
+    if (statement.data) {
+      return updateStatement({
+        id: statement.data.id,
+        amount: sanitizeCurrency(amount),
+        cardId: selectedCard ?? statement.data.cardId,
+        description,
+        paymentMonth:
+          paymentMonth === statement.data.paymentMonth
+            ? statement.data.paymentMonth
+            : String(Number(paymentMonth) + 1),
+        paymentYear,
+        purchaseDate,
+      });
+    }
+
     if (!selectedCard || sanitizeCurrency(amount) === 0) return;
 
-    createStatement({
+    return createStatement({
       amount: sanitizeCurrency(amount),
       cardId: selectedCard,
       description,
@@ -133,6 +166,7 @@ const StatementForm: React.FC = () => {
       monthArray.map((month, index) => ({
         label: month,
         value: index,
+        key: index,
       })),
     [],
   );
@@ -146,10 +180,11 @@ const StatementForm: React.FC = () => {
     return yearsArray.map((year) => ({
       label: year,
       value: year,
+      key: year,
     }));
   }, []);
 
-  if (cards.isLoading)
+  if (cards.isLoading || statement.isLoading)
     return (
       <View className="grow bg-slate-800 items-center justify-center">
         <ActivityIndicator color="#FFF" animating size="large" />
@@ -163,12 +198,13 @@ const StatementForm: React.FC = () => {
       >
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text className="text-2xl text-slate-200 font-bold">
-            Adicionar gasto
+            {`${statement.data ? "Editar" : "Adicionar"} gasto`}
           </Text>
           <View className="h-4" />
           <Controller
             name="description"
             control={control}
+            defaultValue={statement?.data?.description}
             render={({ field: { value, onChange } }) => (
               <Input label="Descrição" value={value} onChangeText={onChange} />
             )}
@@ -177,6 +213,7 @@ const StatementForm: React.FC = () => {
           <Controller
             name="amount"
             control={control}
+            defaultValue={formatCurrency(statement?.data?.amount)}
             render={({ field: { value, onChange } }) => (
               <Input
                 label="Valor"
@@ -188,7 +225,7 @@ const StatementForm: React.FC = () => {
           <View className="h-4" />
           {renderDatePickerComponent({
             label: "Data de compra",
-            value: purchaseDate,
+            value: statement?.data?.purchaseDate ?? purchaseDate,
             onChange: (_, date) => setPurchaseDate(date as Date),
             onPress: () =>
               DateTimePickerAndroid.open({
@@ -200,36 +237,48 @@ const StatementForm: React.FC = () => {
           <Picker
             label="Cartão"
             items={pickerCards}
+            itemKey={statement?.data?.cardId}
             onValueChange={(value: string) => {
               setSelectedCard(value);
             }}
+            {...(statement && { placeholder: {} })}
           />
 
           <View className="h-4" />
           <Picker
             label="Mês de pagamento"
             items={monthPickerItems}
-            placeholder={{
-              label: monthArray[Number(paymentMonth)],
-              value: paymentMonth,
-            }}
+            placeholder={
+              statement
+                ? {}
+                : {
+                    label: monthArray[Number(paymentMonth)],
+                    value: paymentMonth,
+                  }
+            }
+            itemKey={Number(statement?.data?.paymentMonth) - 1}
             onValueChange={(value: string) => setPaymentMonth(value)}
           />
           <View className="h-4" />
           <Picker
             label="Ano de pagamento"
             items={yearPickerItems}
-            placeholder={{
-              label: paymentYear,
-              value: paymentYear,
-            }}
+            placeholder={
+              statement
+                ? {}
+                : {
+                    label: paymentYear,
+                    value: paymentYear,
+                  }
+            }
+            itemKey={statement?.data?.paymentYear}
             onValueChange={(value: string) => setPaymentYear(value)}
           />
           <View className="h-6" />
           <Button
             onPress={handleSubmit(onSubmit)}
-            text="Adicionar gasto"
-            loading={isLoading}
+            text={`${statement.data ? "Editar" : "Adicionar"} gasto`}
+            loading={isLoading || updateLoading}
           />
           <View className="h-6" />
           <Button
