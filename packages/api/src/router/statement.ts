@@ -105,7 +105,7 @@ export const statementRouter = createTRPCRouter({
         },
       });
 
-      if (debt && input.amount) {
+      if (input.amount && debt) {
         await ctx.prisma.debt.update({
           where: {
             id: debt.id,
@@ -115,9 +115,28 @@ export const statementRouter = createTRPCRouter({
               input.amount > currentStatement.amount
                 ? debt.amount + (input.amount - currentStatement.amount)
                 : debt.amount - (currentStatement.amount - input.amount),
+            month: input.paymentMonth,
+            year: input.paymentYear,
           },
         });
       } else {
+        const currentDebt = await ctx.prisma.debt.findFirstOrThrow({
+          where: {
+            cardId: currentStatement.cardId,
+            month: currentStatement.paymentMonth,
+            year: currentStatement.paymentYear,
+          },
+        });
+
+        await ctx.prisma.debt.update({
+          where: {
+            id: currentDebt.id,
+          },
+          data: {
+            amount: currentDebt.amount - currentStatement.amount,
+          },
+        });
+
         await ctx.prisma.debt.create({
           data: {
             amount: input.amount as number,
